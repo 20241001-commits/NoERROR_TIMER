@@ -16,7 +16,6 @@
         }
         
         .time { font-size: 18vw; font-weight: bold; }
-        .error-text { font-size: 8vw; font-weight: bold; color: #ff3b30; margin-top: 20px; font-family: sans-serif; }
         
         /* 状態変化用 */
         .error-bg { background-color: #330000 !important; }
@@ -44,73 +43,109 @@
 
     <div id="helpModal">
         <h2>遊び方</h2>
-        <p>1. 画面をどこでもタップして9秒のカウントダウンを開始します。</p>
+        <p>1. 画面をどこでもタップしてカウントダウンを開始します。</p>
         <p>2. 番が移るたびにタップしてリセットしてください。</p>
-        <p>3. 0秒になると「エラー！」と鳴ります。</p>
+        <p>3. 0秒になると警告音が鳴ります。</p>
         <p>※不正指摘時もタップで強制終了できます。</p>
         <button id="closeHelp" style="width: 100%; padding: 15px; background: white; color: black; border: none; font-size: 18px; margin-top: 20px;">閉じる</button>
     </div>
 
     <button id="timerButton">
         <div id="timeDisplay" class="time">9.00</div>
-        <div id="errorLabel" class="error-text" style="display: none;">エラー！</div>
     </button>
 
     <script>
-        let timeRemaining = 9.00;
+        const START_TIME = 9.00; 
+
+        let timeRemaining = START_TIME;
         let timer = null;
         let isError = false;
-        let lastSecond = 9;
+        let lastSecond = Math.floor(START_TIME);
+        let startTimeStamp = 0;
         
         const timerButton = document.getElementById('timerButton');
         const display = document.getElementById('timeDisplay');
-        const errorLabel = document.getElementById('errorLabel');
         
         // オーディオ設定
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        function playSound(freq, type, duration) {
+        // 通常のカチコチ音
+        function playTickSound() {
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
             osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        // 🔊 強化版アラーム音
+        function playStrongAlarmSound() {
+            const duration = 1.2; 
+            
+            let osc1 = audioCtx.createOscillator();
+            let gain1 = audioCtx.createGain();
+            osc1.type = 'square'; 
+            osc1.frequency.setValueAtTime(180, audioCtx.currentTime); 
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            gain1.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            let osc2 = audioCtx.createOscillator();
+            let gain2 = audioCtx.createGain();
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(185, audioCtx.currentTime); 
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            gain2.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+            osc1.start();
+            osc2.start();
+            osc1.stop(audioCtx.currentTime + duration);
+            osc2.stop(audioCtx.currentTime + duration);
         }
 
         function resetAndStartTimer() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             clearInterval(timer);
-            timeRemaining = 9.00;
-            lastSecond = 9;
+            
+            timeRemaining = START_TIME;
+            lastSecond = Math.floor(START_TIME);
             isError = false;
+            startTimeStamp = Date.now();
             
             timerButton.classList.remove('error-bg');
             display.classList.remove('flash-text');
-            errorLabel.style.display = 'none';
             display.style.color = '#fff';
+            display.innerText = timeRemaining.toFixed(2);
 
             timer = setInterval(() => {
-                timeRemaining -= 0.01;
+                let elapsed = (Date.now() - startTimeStamp) / 1000;
+                timeRemaining = START_TIME - elapsed;
+                
                 if (timeRemaining <= 0) {
                     timeRemaining = 0.00;
                     clearInterval(timer);
                     isError = true;
                     timerButton.classList.add('error-bg');
                     display.style.color = '#ff3b30';
-                    errorLabel.style.display = 'block';
-                    playSound(220, 'sawtooth', 1.0);
+                    playStrongAlarmSound();
                 }
+                
                 display.innerText = timeRemaining.toFixed(2);
+                
                 let currentSecond = Math.floor(timeRemaining);
                 if (currentSecond < lastSecond && currentSecond >= 0 && !isError) {
                     lastSecond = currentSecond;
-                    playSound(1000, 'sine', 0.05);
+                    playTickSound();
                 }
+                
                 if ((timeRemaining % 1.0) > 0.85 && !isError) display.classList.add('flash-text');
                 else if (!isError) display.classList.remove('flash-text');
             }, 10);
