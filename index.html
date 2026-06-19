@@ -4,9 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>脳エラー 専用タイマー</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: monospace; background: black; }
+        * { 
+            box-sizing: border-box; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            /* 全体にドットフォントを適用 */
+            font-family: 'DotGothic16', monospace; 
+        }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: black; 
+        }
         
         #timerButton {
             width: 100%; height: 100%; border: none; outline: none;
@@ -35,9 +45,40 @@
             background: black; color: white; padding: 30px; z-index: 20;
             overflow-y: auto; text-align: left; line-height: 1.6;
         }
+
+        /* マナーモードリマインド用ポップアップ */
+        #soundReminderOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 50; /* 一番手前に表示 */
+        }
+
+        #soundReminderBox {
+            background: #000; color: #fff;
+            padding: 30px; border: 2px solid #fff;
+            text-align: center; border-radius: 10px;
+            width: 80%; max-width: 400px;
+        }
+
+        #soundReminderBox p {
+            font-size: 18px; line-height: 1.5; margin-bottom: 20px;
+        }
+
+        #soundReminderOk {
+            padding: 10px 40px; background: #fff; color: #000;
+            border: none; font-size: 20px; cursor: pointer; font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
+    <div id="soundReminderOverlay">
+        <div id="soundReminderBox">
+            <p>アラーム音を鳴らすため<br>マナーモードをオフに<br>してください</p>
+            <button id="soundReminderOk">OK</button>
+        </div>
+    </div>
 
     <button id="helpButton">?</button>
 
@@ -55,6 +96,13 @@
     </button>
 
     <script>
+        // --- マナーモードリマインドの処理 ---
+        document.getElementById('soundReminderOk').addEventListener('click', (e) => {
+            e.stopPropagation(); // タイマー開始を防ぐ
+            document.getElementById('soundReminderOverlay').style.display = 'none';
+        });
+
+        // --- タイマー処理 ---
         const START_TIME = 9.00; 
 
         let timeRemaining = START_TIME;
@@ -112,6 +160,9 @@
         }
 
         function resetAndStartTimer() {
+            // ポップアップが出ている間はタイマーを起動させない
+            if (document.getElementById('soundReminderOverlay').style.display !== 'none') return;
+
             if (audioCtx.state === 'suspended') audioCtx.resume();
             clearInterval(timer);
             
