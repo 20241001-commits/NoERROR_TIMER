@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>脳エラー 専用タイマー</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    
     <style>
+        /* すべての要素、ボタン、入力欄に対して強制的にドットフォントを適用 */
         * { 
             box-sizing: border-box; 
             user-select: none; 
             -webkit-user-select: none; 
-            /* 全体にドットフォントを適用 */
-            font-family: 'DotGothic16', monospace; 
+            font-family: 'DotGothic16', sans-serif, monospace !important; 
         }
+        
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             overflow: hidden; background: black; 
@@ -25,7 +30,12 @@
             cursor: pointer; padding: 20px;
         }
         
-        .time { font-size: 18vw; font-weight: bold; }
+        /* 巨大な数字部分もドットフォントを維持 */
+        .time { 
+            font-size: 18vw; 
+            font-weight: bold;
+            font-family: 'DotGothic16', sans-serif, monospace !important;
+        }
         
         /* 状態変化用 */
         .error-bg { background-color: #330000 !important; }
@@ -46,28 +56,30 @@
             overflow-y: auto; text-align: left; line-height: 1.6;
         }
 
-        /* マナーモードリマインド用ポップアップ */
+        /* 🟥 マナーモードリマインド用ポップアップ（最前面に固定） */
         #soundReminderOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9); /* 背景をより暗くして目立たせる */
             display: flex; justify-content: center; align-items: center;
-            z-index: 50; /* 一番手前に表示 */
+            z-index: 9999 !important; /* 他のどの要素よりも手前に表示 */
         }
 
         #soundReminderBox {
             background: #000; color: #fff;
-            padding: 30px; border: 2px solid #fff;
-            text-align: center; border-radius: 10px;
-            width: 80%; max-width: 400px;
+            padding: 30px; border: 3px solid #fff; /* 枠線を少し太く */
+            text-align: center; border-radius: 0px; /* ドット風に合わせて角を四角に */
+            width: 85%; max-width: 400px;
         }
 
         #soundReminderBox p {
-            font-size: 18px; line-height: 1.5; margin-bottom: 20px;
+            font-size: 20px; line-height: 1.6; margin-bottom: 25px;
+            color: #fff !important;
         }
 
         #soundReminderOk {
-            padding: 10px 40px; background: #fff; color: #000;
-            border: none; font-size: 20px; cursor: pointer; font-weight: bold;
+            padding: 12px 45px; background: #fff; color: #000;
+            border: none; font-size: 22px; cursor: pointer; font-weight: bold;
+            display: inline-block;
         }
     </style>
 </head>
@@ -96,13 +108,6 @@
     </button>
 
     <script>
-        // --- マナーモードリマインドの処理 ---
-        document.getElementById('soundReminderOk').addEventListener('click', (e) => {
-            e.stopPropagation(); // タイマー開始を防ぐ
-            document.getElementById('soundReminderOverlay').style.display = 'none';
-        });
-
-        // --- タイマー処理 ---
         const START_TIME = 9.00; 
 
         let timeRemaining = START_TIME;
@@ -113,10 +118,18 @@
         
         const timerButton = document.getElementById('timerButton');
         const display = document.getElementById('timeDisplay');
+        const reminderOverlay = document.getElementById('soundReminderOverlay');
         
         // オーディオ設定
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
+        // --- マナーモードリマインドのOKボタン処理 ---
+        document.getElementById('soundReminderOk').addEventListener('click', (e) => {
+            e.stopPropagation(); // タイマーの誤作動（発火）を防止
+            reminderOverlay.style.setProperty('display', 'none', 'important'); // 確実に非表示にする
+            if (audioCtx.state === 'suspended') audioCtx.resume(); // オーディオを有効化
+        });
+
         // 通常のカチコチ音
         function playTickSound() {
             let osc = audioCtx.createOscillator();
@@ -150,8 +163,7 @@
             osc2.frequency.setValueAtTime(185, audioCtx.currentTime); 
             osc2.connect(gain2);
             gain2.connect(audioCtx.destination);
-            gain2.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            gain2.gain.setValueAtTime(0.4, Apple = audioCtx.currentTime + duration);
 
             osc1.start();
             osc2.start();
@@ -160,8 +172,12 @@
         }
 
         function resetAndStartTimer() {
-            // ポップアップが出ている間はタイマーを起動させない
-            if (document.getElementById('soundReminderOverlay').style.display !== 'none') return;
+            // ポップアップが表示されている間はタイマーを開始しない
+            if (reminderOverlay.style.display === 'none' || reminderOverlay.style.display === '') {
+                // 通常通りのスタート処理
+            } else {
+                return; 
+            }
 
             if (audioCtx.state === 'suspended') audioCtx.resume();
             clearInterval(timer);
