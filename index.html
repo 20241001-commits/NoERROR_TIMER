@@ -179,13 +179,14 @@
             }
         }
 
-        // 🔊 「ﾋﾟﾋﾟﾋﾟｯ!」という3連打のリズムを5回繰り返す電子アラーム音
+        // 🔊 王道のデジタル目覚ましのようなテンポの良いアラーム音
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
-            const singleBeepDuration = 0.06; // 「ピ」単発の長さ（0.06秒）
-            const shortGap = 0.04;          // 3連打内の「ピ」同士の細かな隙間（0.04秒）
-            const longGap = 0.25;           // 「ﾋﾟﾋﾟﾋﾟｯ!」の塊同士の間のインターバル（0.25秒）
+            // 🟥 音の長さを全体的に延長し、くっきり聞き取れるように調整
+            const singleBeepDuration = 0.1; // 「ピ」単発の長さ（0.1秒）
+            const shortGap = 0.08;          // 3連打内の「ピ」同士の隙間（0.08秒）
+            const longGap = 0.4;            // 「ﾋﾟﾋﾟﾋﾟｯ!」の塊同士の間のインターバル（0.4秒）
             
             // 1つの「ﾋﾟﾋﾟﾋﾟｯ!」という塊自体の長さ
             const groupDuration = (singleBeepDuration * 3) + (shortGap * 2); 
@@ -206,7 +207,7 @@
                     osc1.frequency.setValueAtTime(1200, startTime);
                     osc1.connect(gain1);
                     gain1.connect(audioCtx.destination);
-                    gain1.gain.setValueAtTime(0.2, startTime); // フェードなしで即音量一定
+                    gain1.gain.setValueAtTime(0.2, startTime); 
 
                     let osc2 = audioCtx.createOscillator();
                     let gain2 = audioCtx.createGain();
@@ -214,7 +215,7 @@
                     osc2.frequency.setValueAtTime(1205, startTime);
                     osc2.connect(gain2);
                     gain2.connect(audioCtx.destination);
-                    gain2.gain.setValueAtTime(0.3, startTime); // フェードなしで即音量一定
+                    gain2.gain.setValueAtTime(0.3, startTime); 
 
                     osc1.start(startTime);
                     osc2.start(startTime);
