@@ -46,6 +46,16 @@
             width: 50px; height: 50px; background: rgba(255,255,255,0.2);
             border-radius: 50%; border: 1px solid white; color: white;
             font-size: 24px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 🟥 一時停止ボタンを追加 */
+        #pauseButton {
+            position: absolute; top: 15px; right: 80px; z-index: 10;
+            width: 50px; height: 50px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; border: 1px solid white; color: white;
+            font-size: 20px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
         }
 
         #helpModal {
@@ -89,6 +99,7 @@
         </div>
     </div>
 
+    <button id="pauseButton">⏸</button>
     <button id="helpButton">?</button>
 
     <div id="helpModal">
@@ -96,7 +107,7 @@
         <p>1. 画面をどこでもタップしてカウントダウンを開始します。</p>
         <p>2. 番が移るたびにタップしてリセットしてください。</p>
         <p>3. 0秒になると警告音が鳴ります。</p>
-        <p>※不正指摘時もタップで強制終了できます。</p>
+        <p>※一時停止ボタンでタイマーを止めることもできます。</p>
         <button id="closeHelp" style="width: 100%; padding: 15px; background: white; color: black; border: none; font-size: 18px; margin-top: 20px;">閉じる</button>
     </div>
 
@@ -115,9 +126,14 @@
         let isOverlayVisible = true; 
         let wakeLock = null; 
         
+        // 🟥 一時停止用の変数を追加
+        let isPaused = false;
+        let pausedTimeStamp = 0;
+        
         const timerButton = document.getElementById('timerButton');
         const display = document.getElementById('timeDisplay');
         const reminderOverlay = document.getElementById('soundReminderOverlay');
+        const pauseButton = document.getElementById('pauseButton');
         
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
@@ -179,25 +195,20 @@
             }
         }
 
-        // 🔊 王道のデジタル目覚ましのようなテンポの良いアラーム音
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
-            // 🟥 音の長さを全体的に延長し、くっきり聞き取れるように調整
-            const singleBeepDuration = 0.1; // 「ピ」単発の長さ（0.1秒）
-            const shortGap = 0.08;          // 3連打内の「ピ」同士の隙間（0.08秒）
-            const longGap = 0.4;            // 「ﾋﾟﾋﾟﾋﾟｯ!」の塊同士の間のインターバル（0.4秒）
+            const singleBeepDuration = 0.1; 
+            const shortGap = 0.08;          
+            const longGap = 0.4;            
             
-            // 1つの「ﾋﾟﾋﾟﾋﾟｯ!」という塊自体の長さ
             const groupDuration = (singleBeepDuration * 3) + (shortGap * 2); 
-            const cycle = groupDuration + longGap; // 次の塊が始まるまでの周期
-            const repeatCount = 5; // 塊を鳴らす回数
+            const cycle = groupDuration + longGap; 
+            const repeatCount = 5; 
 
             for (let i = 0; i < repeatCount; i++) {
-                // 各「ﾋﾟﾋﾟﾋﾟｯ!」グループの開始時間
                 let groupStartTime = audioCtx.currentTime + (i * cycle);
                 
-                // 1つのグループの中で3回「ピ」を鳴らす
                 for (let j = 0; j < 3; j++) {
                     let startTime = groupStartTime + (j * (singleBeepDuration + shortGap));
                     
@@ -228,6 +239,27 @@
             }
         }
 
+        // 🟥 一時停止ボタンの動作
+        pauseButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // タイマー画面のクリックを防止
+            
+            // まだ始まっていない、またはエラー時は何もしない
+            if (isOverlayVisible || isError || timeRemaining === START_TIME) return;
+
+            if (!isPaused) {
+                // 一時停止する
+                isPaused = true;
+                pauseButton.innerText = '▶';
+                pausedTimeStamp = Date.now();
+            } else {
+                // 再開する
+                isPaused = false;
+                pauseButton.innerText = '⏸';
+                // 止まっていた時間分だけ、開始時間を現在時刻にずらして補正
+                startTimeStamp += (Date.now() - pausedTimeStamp);
+            }
+        });
+
         function resetAndStartTimer() {
             if (isOverlayVisible) return; 
 
@@ -241,12 +273,19 @@
             isError = false;
             startTimeStamp = Date.now();
             
+            // 🟥 タップしてリセットした時は一時停止も解除する
+            isPaused = false;
+            pauseButton.innerText = '⏸';
+            
             timerButton.classList.remove('error-bg');
             display.classList.remove('flash-text');
             display.style.color = '#fff';
             display.innerText = timeRemaining.toFixed(2);
 
             timer = setInterval(() => {
+                // 🟥 一時停止中は時間の計算をスキップ
+                if (isPaused) return;
+
                 let elapsed = (Date.now() - startTimeStamp) / 1000;
                 timeRemaining = START_TIME - elapsed;
                 
