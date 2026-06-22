@@ -1,3 +1,11 @@
+いいね。その仕様、ゲームのテンポを崩さずに緊張感をさらに煽れるので最高ですね。
+
+Web Audio APIには「これから鳴る予定の音」を予約する機能があるので、それを利用して「2.5秒のアラームを、わずかな隙間を空けて5回連続で鳴らすよう予約する」**ように変更しました。
+また、画面がタップ（リセット）された瞬間に、**「鳴っている音」と「予約されている音」をすべて強制キル（破棄）する処理を追加しています。
+
+今回もコピペミスを防ぐため、今のコードをすべて消して**以下を丸ごと上書き**してGitHubにプッシュしてください。
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -118,7 +126,9 @@
         
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // 🟥 画面スリープを強制的に防止する関数
+        // 🟥 鳴っている（予約されている）音を管理する配列
+        let activeOscillators = [];
+
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
@@ -129,17 +139,14 @@
             }
         }
 
-        // --- マナーモードリマインドのOKボタン処理 ---
         document.getElementById('soundReminderOk').addEventListener('click', (e) => {
             e.stopPropagation(); 
             reminderOverlay.style.display = 'none'; 
             isOverlayVisible = false; 
             
-            // 🔊 【重要】スマホブラウザの音声制限を解除（アンロック処理）
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume(); 
             }
-            // 一瞬だけ無音を鳴らしてブラウザに許可させる
             let dummyOsc = audioCtx.createOscillator();
             let dummyGain = audioCtx.createGain();
             dummyGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
@@ -151,7 +158,6 @@
             requestWakeLock(); 
         });
 
-        // 通常のカチコチ音
         function playTickSound() {
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
@@ -165,56 +171,82 @@
             osc.stop(audioCtx.currentTime + 0.05);
         }
 
-        // 🔊 緊張感を高めたロングアラーム音
+        // 🟥 再生中のアラームをすべて強制停止・破棄する関数
+        function stopAllAlarms() {
+            if (activeOscillators.length > 0) {
+                activeOscillators.forEach(osc => {
+                    try {
+                        osc.stop();
+                        osc.disconnect();
+                    } catch (e) {
+                        // 既に止まっている場合のエラーは無視
+                    }
+                });
+                activeOscillators = []; // 配列を空にする
+            }
+        }
+
+        // 🔊 緊張感を高めたロングアラーム音（5回連続再生）
         function playStrongAlarmSound() {
-            const duration = 2.5; // 音の長さを2.5秒に延長
-            const now = audioCtx.currentTime;
-            
-            // ベースとなる不協和音（サイレン風のうねり）
-            let osc1 = audioCtx.createOscillator();
-            let gain1 = audioCtx.createGain();
-            osc1.type = 'sawtooth'; // 鋭い鋸歯状波
-            osc1.frequency.setValueAtTime(150, now);
-            osc1.frequency.linearRampToValueAtTime(120, now + duration); // 音程を徐々に下げる
-            osc1.connect(gain1);
-            gain1.connect(audioCtx.destination);
-            gain1.gain.setValueAtTime(0.3, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + duration);
-            
-            let osc2 = audioCtx.createOscillator();
-            let gain2 = audioCtx.createGain();
-            osc2.type = 'sawtooth';
-            osc2.frequency.setValueAtTime(156, now); // 周波数をずらして激しい「うねり」を作る
-            osc2.frequency.linearRampToValueAtTime(126, now + duration);
-            osc2.connect(gain2);
-            gain2.connect(audioCtx.destination);
-            gain2.gain.setValueAtTime(0.3, now);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            stopAllAlarms(); // 念のため既存のアラームをクリア
 
-            // 金属的なアラート感を強調する高音を追加
-            let osc3 = audioCtx.createOscillator();
-            let gain3 = audioCtx.createGain();
-            osc3.type = 'square'; // 矩形波
-            osc3.frequency.setValueAtTime(600, now);
-            osc3.connect(gain3);
-            gain3.connect(audioCtx.destination);
-            gain3.gain.setValueAtTime(0.15, now);
-            gain3.gain.setValueAtTime(0.15, now + 0.5);
-            gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+            const burstDuration = 2.5; // 1回のアラームの長さ
+            const gap = 0.1; // アラームの間のわずかな無音時間
+            const cycle = burstDuration + gap; // 1セットの長さ（2.6秒）
+            const repeatCount = 5; // 鳴らす回数
 
-            // すべての音を開始
-            osc1.start();
-            osc2.start();
-            osc3.start();
-            
-            // 指定時間で停止
-            osc1.stop(now + duration);
-            osc2.stop(now + duration);
-            osc3.stop(now + 1.5);
+            for (let i = 0; i < repeatCount; i++) {
+                // 各ループの開始時間をずらして予約する
+                let startTime = audioCtx.currentTime + (i * cycle);
+                
+                let osc1 = audioCtx.createOscillator();
+                let gain1 = audioCtx.createGain();
+                osc1.type = 'sawtooth'; 
+                osc1.frequency.setValueAtTime(150, startTime);
+                osc1.frequency.linearRampToValueAtTime(120, startTime + burstDuration); 
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                gain1.gain.setValueAtTime(0.3, startTime);
+                gain1.gain.exponentialRampToValueAtTime(0.001, startTime + burstDuration);
+                
+                let osc2 = audioCtx.createOscillator();
+                let gain2 = audioCtx.createGain();
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(156, startTime); 
+                osc2.frequency.linearRampToValueAtTime(126, startTime + burstDuration);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                gain2.gain.setValueAtTime(0.3, startTime);
+                gain2.gain.exponentialRampToValueAtTime(0.001, startTime + burstDuration);
+
+                let osc3 = audioCtx.createOscillator();
+                let gain3 = audioCtx.createGain();
+                osc3.type = 'square'; 
+                osc3.frequency.setValueAtTime(600, startTime);
+                osc3.connect(gain3);
+                gain3.connect(audioCtx.destination);
+                gain3.gain.setValueAtTime(0.15, startTime);
+                gain3.gain.setValueAtTime(0.15, startTime + 0.5);
+                gain3.gain.exponentialRampToValueAtTime(0.001, startTime + 1.5);
+
+                osc1.start(startTime);
+                osc2.start(startTime);
+                osc3.start(startTime);
+                
+                osc1.stop(startTime + burstDuration);
+                osc2.stop(startTime + burstDuration);
+                osc3.stop(startTime + 1.5);
+
+                // 停止処理のために配列に保存しておく
+                activeOscillators.push(osc1, osc2, osc3);
+            }
         }
 
         function resetAndStartTimer() {
             if (isOverlayVisible) return; 
+
+            // 🟥 タップされたら即座にアラーム音を消す
+            stopAllAlarms();
 
             if (audioCtx.state === 'suspended') audioCtx.resume();
             clearInterval(timer);
@@ -255,7 +287,6 @@
             }, 10);
         }
 
-        // イベント設定
         timerButton.addEventListener('click', resetAndStartTimer);
         document.getElementById('helpButton').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -274,3 +305,5 @@
     </script>
 </body>
 </html>
+
+```
