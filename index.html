@@ -179,43 +179,51 @@
             }
         }
 
-        // 🔊 シンプルな電子アラーム音（フェードなし、音量一定）
+        // 🔊 「ﾋﾟﾋﾟﾋﾟｯ!」という3連打のリズムを5回繰り返す電子アラーム音
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
-            const beepDuration = 0.2; // 1回の「ピー」の長さ（0.2秒）
-            const gap = 0.1; // 音と音の隙間（0.1秒）
-            const cycle = beepDuration + gap; // 1セットにかかる時間（0.3秒）
-            const repeatCount = 5; // 鳴らす回数
+            const singleBeepDuration = 0.06; // 「ピ」単発の長さ（0.06秒）
+            const shortGap = 0.04;          // 3連打内の「ピ」同士の細かな隙間（0.04秒）
+            const longGap = 0.25;           // 「ﾋﾟﾋﾟﾋﾟｯ!」の塊同士の間のインターバル（0.25秒）
+            
+            // 1つの「ﾋﾟﾋﾟﾋﾟｯ!」という塊自体の長さ
+            const groupDuration = (singleBeepDuration * 3) + (shortGap * 2); 
+            const cycle = groupDuration + longGap; // 次の塊が始まるまでの周期
+            const repeatCount = 5; // 塊を鳴らす回数
 
             for (let i = 0; i < repeatCount; i++) {
-                let startTime = audioCtx.currentTime + (i * cycle);
+                // 各「ﾋﾟﾋﾟﾋﾟｯ!」グループの開始時間
+                let groupStartTime = audioCtx.currentTime + (i * cycle);
                 
-                let osc1 = audioCtx.createOscillator();
-                let gain1 = audioCtx.createGain();
-                osc1.type = 'square'; 
-                osc1.frequency.setValueAtTime(1200, startTime);
-                osc1.connect(gain1);
-                gain1.connect(audioCtx.destination);
-                // フェードなしで最初から最後まで音量一定
-                gain1.gain.setValueAtTime(0.2, startTime);
+                // 1つのグループの中で3回「ピ」を鳴らす
+                for (let j = 0; j < 3; j++) {
+                    let startTime = groupStartTime + (j * (singleBeepDuration + shortGap));
+                    
+                    let osc1 = audioCtx.createOscillator();
+                    let gain1 = audioCtx.createGain();
+                    osc1.type = 'square'; 
+                    osc1.frequency.setValueAtTime(1200, startTime);
+                    osc1.connect(gain1);
+                    gain1.connect(audioCtx.destination);
+                    gain1.gain.setValueAtTime(0.2, startTime); // フェードなしで即音量一定
 
-                let osc2 = audioCtx.createOscillator();
-                let gain2 = audioCtx.createGain();
-                osc2.type = 'sine'; 
-                osc2.frequency.setValueAtTime(1205, startTime);
-                osc2.connect(gain2);
-                gain2.connect(audioCtx.destination);
-                // フェードなしで最初から最後まで音量一定
-                gain2.gain.setValueAtTime(0.3, startTime);
+                    let osc2 = audioCtx.createOscillator();
+                    let gain2 = audioCtx.createGain();
+                    osc2.type = 'sine'; 
+                    osc2.frequency.setValueAtTime(1205, startTime);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    gain2.gain.setValueAtTime(0.3, startTime); // フェードなしで即音量一定
 
-                osc1.start(startTime);
-                osc2.start(startTime);
-                
-                osc1.stop(startTime + beepDuration);
-                osc2.stop(startTime + beepDuration);
+                    osc1.start(startTime);
+                    osc2.start(startTime);
+                    
+                    osc1.stop(startTime + singleBeepDuration);
+                    osc2.stop(startTime + singleBeepDuration);
 
-                activeOscillators.push(osc1, osc2);
+                    activeOscillators.push(osc1, osc2);
+                }
             }
         }
 
