@@ -179,63 +179,52 @@
             }
         }
 
+        // 🔊 短く鋭い「ピー！ピー！ピー！」という電子アラーム音
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
-            // 🟥 音の長さを1秒に変更
-            const burstDuration = 1.0; 
-            const repeatCount = 5; 
+            const beepDuration = 0.2; // 1回の「ピー」の長さ（0.2秒）
+            const gap = 0.1; // 音と音の隙間（0.1秒）
+            const cycle = beepDuration + gap; // 1セットにかかる時間
+            const repeatCount = 5; // 鳴らす回数
 
             for (let i = 0; i < repeatCount; i++) {
-                let startTime = audioCtx.currentTime + (i * burstDuration);
+                let startTime = audioCtx.currentTime + (i * cycle);
                 
                 let osc1 = audioCtx.createOscillator();
                 let gain1 = audioCtx.createGain();
-                osc1.type = 'sawtooth'; 
-                // 🟥 ピッチを大幅に高く設定（600Hz → 450Hzへ下がる）
-                osc1.frequency.setValueAtTime(600, startTime);
-                osc1.frequency.linearRampToValueAtTime(450, startTime + burstDuration); 
+                // 電子音らしい矩形波
+                osc1.type = 'square'; 
+                osc1.frequency.setValueAtTime(1200, startTime);
                 osc1.connect(gain1);
                 gain1.connect(audioCtx.destination);
                 
-                gain1.gain.setValueAtTime(0.3, startTime);
-                gain1.gain.linearRampToValueAtTime(0.25, startTime + burstDuration - 0.05);
-                gain1.gain.linearRampToValueAtTime(0.001, startTime + burstDuration);
-                
+                // ブチッというノイズを防ぐためのフェードイン・アウト
+                gain1.gain.setValueAtTime(0, startTime);
+                gain1.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+                gain1.gain.setValueAtTime(0.2, startTime + beepDuration - 0.02);
+                gain1.gain.linearRampToValueAtTime(0, startTime + beepDuration);
+
                 let osc2 = audioCtx.createOscillator();
                 let gain2 = audioCtx.createGain();
-                osc2.type = 'sawtooth';
-                // 🟥 うねりを作るために少しずらした高音（620Hz → 470Hz）
-                osc2.frequency.setValueAtTime(620, startTime); 
-                osc2.frequency.linearRampToValueAtTime(470, startTime + burstDuration);
+                // 芯を作るためのサイン波
+                osc2.type = 'sine'; 
+                osc2.frequency.setValueAtTime(1205, startTime); // 少しずらして厚みを出す
                 osc2.connect(gain2);
                 gain2.connect(audioCtx.destination);
                 
-                gain2.gain.setValueAtTime(0.3, startTime);
-                gain2.gain.linearRampToValueAtTime(0.25, startTime + burstDuration - 0.05);
-                gain2.gain.linearRampToValueAtTime(0.001, startTime + burstDuration);
-
-                let osc3 = audioCtx.createOscillator();
-                let gain3 = audioCtx.createGain();
-                osc3.type = 'square'; 
-                // 🟥 さらに甲高い金属音を追加して耳障りなアラート感（1200Hz）
-                osc3.frequency.setValueAtTime(1200, startTime);
-                osc3.connect(gain3);
-                gain3.connect(audioCtx.destination);
-                
-                gain3.gain.setValueAtTime(0.15, startTime);
-                gain3.gain.linearRampToValueAtTime(0.12, startTime + burstDuration - 0.05);
-                gain3.gain.linearRampToValueAtTime(0.001, startTime + burstDuration);
+                gain2.gain.setValueAtTime(0, startTime);
+                gain2.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+                gain2.gain.setValueAtTime(0.3, startTime + beepDuration - 0.02);
+                gain2.gain.linearRampToValueAtTime(0, startTime + beepDuration);
 
                 osc1.start(startTime);
                 osc2.start(startTime);
-                osc3.start(startTime);
                 
-                osc1.stop(startTime + burstDuration);
-                osc2.stop(startTime + burstDuration);
-                osc3.stop(startTime + burstDuration);
+                osc1.stop(startTime + beepDuration);
+                osc2.stop(startTime + beepDuration);
 
-                activeOscillators.push(osc1, osc2, osc3);
+                activeOscillators.push(osc1, osc2);
             }
         }
 
