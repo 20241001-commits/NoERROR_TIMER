@@ -22,7 +22,6 @@
             overflow: hidden; background: black; 
         }
         
-        /* 🟥 タイマーを確実に画面中央＆全画面に固定 */
         #timerButton {
             position: absolute; top: 0; left: 0; z-index: 1;
             width: 100%; height: 100%; border: none; outline: none;
@@ -35,8 +34,8 @@
             font-size: 18vw; 
             font-weight: bold;
             font-family: 'DotGothic16', sans-serif, monospace !important;
-            line-height: 1; /* 🟥 文字の上下の余白を削ってズレを防止 */
-            margin-top: -5vh; /* 視覚的なド真ん中になるように微調整 */
+            line-height: 1; 
+            margin-top: -5vh; 
         }
         
         .error-bg { background-color: #330000 !important; }
@@ -183,7 +182,8 @@
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
-            const burstDuration = 2.5; 
+            // 🟥 音の長さを1秒に変更
+            const burstDuration = 1.0; 
             const repeatCount = 5; 
 
             for (let i = 0; i < repeatCount; i++) {
@@ -192,8 +192,9 @@
                 let osc1 = audioCtx.createOscillator();
                 let gain1 = audioCtx.createGain();
                 osc1.type = 'sawtooth'; 
-                osc1.frequency.setValueAtTime(150, startTime);
-                osc1.frequency.linearRampToValueAtTime(120, startTime + burstDuration); 
+                // 🟥 ピッチを大幅に高く設定（600Hz → 450Hzへ下がる）
+                osc1.frequency.setValueAtTime(600, startTime);
+                osc1.frequency.linearRampToValueAtTime(450, startTime + burstDuration); 
                 osc1.connect(gain1);
                 gain1.connect(audioCtx.destination);
                 
@@ -204,8 +205,9 @@
                 let osc2 = audioCtx.createOscillator();
                 let gain2 = audioCtx.createGain();
                 osc2.type = 'sawtooth';
-                osc2.frequency.setValueAtTime(156, startTime); 
-                osc2.frequency.linearRampToValueAtTime(126, startTime + burstDuration);
+                // 🟥 うねりを作るために少しずらした高音（620Hz → 470Hz）
+                osc2.frequency.setValueAtTime(620, startTime); 
+                osc2.frequency.linearRampToValueAtTime(470, startTime + burstDuration);
                 osc2.connect(gain2);
                 gain2.connect(audioCtx.destination);
                 
@@ -216,7 +218,8 @@
                 let osc3 = audioCtx.createOscillator();
                 let gain3 = audioCtx.createGain();
                 osc3.type = 'square'; 
-                osc3.frequency.setValueAtTime(600, startTime);
+                // 🟥 さらに甲高い金属音を追加して耳障りなアラート感（1200Hz）
+                osc3.frequency.setValueAtTime(1200, startTime);
                 osc3.connect(gain3);
                 gain3.connect(audioCtx.destination);
                 
