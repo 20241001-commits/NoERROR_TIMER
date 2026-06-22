@@ -179,13 +179,13 @@
             }
         }
 
-        // 🔊 短く鋭い「ピー！ピー！ピー！」という電子アラーム音
+        // 🔊 シンプルな電子アラーム音（フェードなし、音量一定）
         function playStrongAlarmSound() {
             stopAllAlarms(); 
 
             const beepDuration = 0.2; // 1回の「ピー」の長さ（0.2秒）
             const gap = 0.1; // 音と音の隙間（0.1秒）
-            const cycle = beepDuration + gap; // 1セットにかかる時間
+            const cycle = beepDuration + gap; // 1セットにかかる時間（0.3秒）
             const repeatCount = 5; // 鳴らす回数
 
             for (let i = 0; i < repeatCount; i++) {
@@ -193,30 +193,21 @@
                 
                 let osc1 = audioCtx.createOscillator();
                 let gain1 = audioCtx.createGain();
-                // 電子音らしい矩形波
                 osc1.type = 'square'; 
                 osc1.frequency.setValueAtTime(1200, startTime);
                 osc1.connect(gain1);
                 gain1.connect(audioCtx.destination);
-                
-                // ブチッというノイズを防ぐためのフェードイン・アウト
-                gain1.gain.setValueAtTime(0, startTime);
-                gain1.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
-                gain1.gain.setValueAtTime(0.2, startTime + beepDuration - 0.02);
-                gain1.gain.linearRampToValueAtTime(0, startTime + beepDuration);
+                // フェードなしで最初から最後まで音量一定
+                gain1.gain.setValueAtTime(0.2, startTime);
 
                 let osc2 = audioCtx.createOscillator();
                 let gain2 = audioCtx.createGain();
-                // 芯を作るためのサイン波
                 osc2.type = 'sine'; 
-                osc2.frequency.setValueAtTime(1205, startTime); // 少しずらして厚みを出す
+                osc2.frequency.setValueAtTime(1205, startTime);
                 osc2.connect(gain2);
                 gain2.connect(audioCtx.destination);
-                
-                gain2.gain.setValueAtTime(0, startTime);
-                gain2.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
-                gain2.gain.setValueAtTime(0.3, startTime + beepDuration - 0.02);
-                gain2.gain.linearRampToValueAtTime(0, startTime + beepDuration);
+                // フェードなしで最初から最後まで音量一定
+                gain2.gain.setValueAtTime(0.3, startTime);
 
                 osc1.start(startTime);
                 osc2.start(startTime);
