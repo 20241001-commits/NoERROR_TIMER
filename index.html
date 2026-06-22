@@ -49,13 +49,13 @@
             display: flex; justify-content: center; align-items: center;
         }
 
-        /* 🟥 一時停止ボタンを追加 */
         #pauseButton {
             position: absolute; top: 15px; right: 80px; z-index: 10;
             width: 50px; height: 50px; background: rgba(255,255,255,0.2);
             border-radius: 50%; border: 1px solid white; color: white;
-            font-size: 20px; cursor: pointer;
+            font-size: 18px; cursor: pointer;
             display: flex; justify-content: center; align-items: center;
+            letter-spacing: 2px; /* 縦線の隙間を少し広げる */
         }
 
         #helpModal {
@@ -99,7 +99,7 @@
         </div>
     </div>
 
-    <button id="pauseButton">⏸</button>
+    <button id="pauseButton">| |</button>
     <button id="helpButton">?</button>
 
     <div id="helpModal">
@@ -126,7 +126,6 @@
         let isOverlayVisible = true; 
         let wakeLock = null; 
         
-        // 🟥 一時停止用の変数を追加
         let isPaused = false;
         let pausedTimeStamp = 0;
         
@@ -239,23 +238,20 @@
             }
         }
 
-        // 🟥 一時停止ボタンの動作
         pauseButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // タイマー画面のクリックを防止
+            e.stopPropagation(); 
             
-            // まだ始まっていない、またはエラー時は何もしない
             if (isOverlayVisible || isError || timeRemaining === START_TIME) return;
 
             if (!isPaused) {
-                // 一時停止する
                 isPaused = true;
-                pauseButton.innerText = '▶';
+                // 絵文字にならないシンプルな図形文字を使用
+                pauseButton.innerText = '►';
                 pausedTimeStamp = Date.now();
             } else {
-                // 再開する
                 isPaused = false;
-                pauseButton.innerText = '⏸';
-                // 止まっていた時間分だけ、開始時間を現在時刻にずらして補正
+                // テキストの縦線に戻す
+                pauseButton.innerText = '| |';
                 startTimeStamp += (Date.now() - pausedTimeStamp);
             }
         });
@@ -273,9 +269,8 @@
             isError = false;
             startTimeStamp = Date.now();
             
-            // 🟥 タップしてリセットした時は一時停止も解除する
             isPaused = false;
-            pauseButton.innerText = '⏸';
+            pauseButton.innerText = '| |';
             
             timerButton.classList.remove('error-bg');
             display.classList.remove('flash-text');
@@ -283,7 +278,6 @@
             display.innerText = timeRemaining.toFixed(2);
 
             timer = setInterval(() => {
-                // 🟥 一時停止中は時間の計算をスキップ
                 if (isPaused) return;
 
                 let elapsed = (Date.now() - startTimeStamp) / 1000;
